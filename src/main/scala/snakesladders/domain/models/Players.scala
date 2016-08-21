@@ -1,14 +1,11 @@
 package snakesladders.domain.models
 
-case object Players {
-
-  import snakesladders.domain.Entity
+object Players {
 
   case class Player(
-    id: String,
     name: String,
     computer: Boolean = false
-  ) extends Entity
+  )
 
   case class Position(
     player: Player,
@@ -19,5 +16,10 @@ case object Players {
     player: Player,
     rolled: Int
   )
+
+  implicit val playOrderOrdering = new Ordering[PlayOrder] {
+    def compare(x: PlayOrder, y: PlayOrder): Int =
+      y.rolled.compare(x.rolled)
+  }
 
 }
