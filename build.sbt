@@ -1,3 +1,4 @@
+connectInput in run := true
 
 val additionalScalacOptions = Seq("-deprecation", "-unchecked", "-feature")
 
