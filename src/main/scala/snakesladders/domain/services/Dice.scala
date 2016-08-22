@@ -15,7 +15,7 @@ class Dice(nextRandom: () => Int) extends Actor {
 
 object Dice {
   case class Roll(player: Player)
-  case class DiceRolled(player: Player, roll: Int)
+  case class DiceRolled(player: Player, rolled: Int)
 
   def props(nextRandom: () => Int) = Props(new Dice(nextRandom))
 }

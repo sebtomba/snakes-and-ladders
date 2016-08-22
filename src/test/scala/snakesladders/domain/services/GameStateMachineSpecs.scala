@@ -2,7 +2,7 @@ package snakesladders.domain.services
 
 import akka.actor.ActorSystem
 import akka.testkit.{ImplicitSender, TestFSMRef, TestKit}
-import org.scalatest.{Matchers, WordSpecLike}
+import org.scalatest.{BeforeAndAfterAll, Matchers, WordSpecLike}
 import snakesladders.domain.events._
 import snakesladders.domain.models.GameDefinitions._
 import snakesladders.domain.models.GameState._
@@ -14,7 +14,12 @@ class GameStateMachineSpecs
   extends TestKit(ActorSystem("GameStateMachineSpecs"))
     with ImplicitSender
     with WordSpecLike
-    with Matchers {
+    with Matchers
+    with BeforeAndAfterAll {
+
+  override def afterAll {
+    TestKit.shutdownActorSystem(system)
+  }
 
   system.eventStream.subscribe(testActor, classOf[GameEvent])
 
@@ -62,7 +67,7 @@ class GameStateMachineSpecs
         val fsm = TestFSMRef(new GameStateMachine)
 
         fsm ! InitializeGame(game)
-        fsm ! PlayerHasRolled(player2, 6)
+        fsm ! PlayerRolled(player2, 6)
         fsm.stateName should equal(DeterminingPlayOrder)
         fsm.stateData should equal(PlayOrderData(game))
 
@@ -77,7 +82,7 @@ class GameStateMachineSpecs
         val fsm = TestFSMRef(new GameStateMachine)
 
         fsm ! InitializeGame(game)
-        fsm ! PlayerHasRolled(player1, 3)
+        fsm ! PlayerRolled(player1, 3)
         fsm.stateName should equal(DeterminingPlayOrder)
         fsm.stateData should equal(PlayOrderData(game, Seq(PlayOrder(player1, 3)), 1))
 
@@ -92,8 +97,8 @@ class GameStateMachineSpecs
         val fsm = TestFSMRef(new GameStateMachine)
 
         fsm ! InitializeGame(game)
-        fsm ! PlayerHasRolled(player1, 3)
-        fsm ! PlayerHasRolled(player2, 3)
+        fsm ! PlayerRolled(player1, 3)
+        fsm ! PlayerRolled(player2, 3)
         fsm.stateName should equal(DeterminingPlayOrder)
         fsm.stateData should equal(PlayOrderData(game, Seq(PlayOrder(player1, 3)), 1))
 
@@ -110,9 +115,9 @@ class GameStateMachineSpecs
         val positions = game.players.map(p => p -> Position(p, 1)).toMap
 
         fsm ! InitializeGame(game)
-        fsm ! PlayerHasRolled(player1, 3)
-        fsm ! PlayerHasRolled(player2, 6)
-        fsm ! PlayerHasRolled(player3, 4)
+        fsm ! PlayerRolled(player1, 3)
+        fsm ! PlayerRolled(player2, 6)
+        fsm ! PlayerRolled(player3, 4)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(GameData(game, playOrder, positions))
 
@@ -136,7 +141,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player1, 6)
+        fsm ! PlayerRolled(player1, 6)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData)
 
@@ -151,7 +156,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 3)
+        fsm ! PlayerRolled(player2, 3)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 4)),
@@ -170,7 +175,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 1)
+        fsm ! PlayerRolled(player2, 1)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 2)),
@@ -189,7 +194,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 1)
+        fsm ! PlayerRolled(player2, 1)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 2)),
@@ -209,7 +214,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 1)
+        fsm ! PlayerRolled(player2, 1)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 51)),
@@ -228,7 +233,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 1)
+        fsm ! PlayerRolled(player2, 1)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 51)),
@@ -248,7 +253,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 2)
+        fsm ! PlayerRolled(player2, 2)
         fsm.stateName should equal(MainGame)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 99)),
@@ -266,7 +271,7 @@ class GameStateMachineSpecs
         val gameData = GameData(game, playOrder, positions)
         fsm.setState(MainGame, gameData)
 
-        fsm ! PlayerHasRolled(player2, 1)
+        fsm ! PlayerRolled(player2, 1)
         fsm.stateName should equal(GameOver)
         fsm.stateData should equal(gameData.copy(
           positions = positions.updated(player2, Position(player2, 100)),
