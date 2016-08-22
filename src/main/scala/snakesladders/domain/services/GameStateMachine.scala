@@ -16,16 +16,18 @@ class GameStateMachine extends FSM[GameState.State, Data] {
   when(DeterminingPlayOrder) {
     case Event(InitializeGame(game), Uninitialized) =>
       publishEvent(GameStarted)
-      publishEventAndStay(CurrentPlayerChanged(game.players.head))
-        .using(PlayOrderData(game))
+      publishEvent(CurrentPlayerChanged(game.players.head))
+      stay using PlayOrderData(game)
 
     case Event(PlayerHasRolled(player, _), PlayOrderData(game, _, currentPlayer))
       if game.players(currentPlayer) != player => // it's not this players turn
-      publishEventAndStay(WrongPlayerRolled(player))
+      publishEvent(WrongPlayerRolled(player))
+      stay
 
     case Event(PlayerHasRolled(player, rolled), PlayOrderData(_, playOrder, _))
       if playOrder.exists(_.rolled == rolled) => // someone rolled this before and the player must roll again
-      publishEventAndStay(PlayerMustRollAgain(player))
+      publishEvent(PlayerMustRollAgain(player))
+      stay
 
     case Event(PlayerHasRolled(player, rolled), PlayOrderData(game, playOrder, currentPlayer)) =>
       val newPlayOrder = (PlayOrder(player, rolled) +: playOrder).sorted
@@ -33,32 +35,34 @@ class GameStateMachine extends FSM[GameState.State, Data] {
       if (game.players.length == newPlayOrder.length) {
         val positions = game.players.map(p => p -> Position(p, 1)).toMap
         publishEvent(PlayOrderDetermined(newPlayOrder))
-        publishEventAndGoto(CurrentPlayerChanged(newPlayOrder.head.player), MainGame)
-          .using(GameData(game, newPlayOrder, positions))
+        publishEvent(CurrentPlayerChanged(newPlayOrder.head.player))
+        goto(MainGame) using GameData(game, newPlayOrder, positions)
       } else {
         val next = nextPlayer(game, currentPlayer)
-        publishEventAndStay(CurrentPlayerChanged(game.players(next)))
-          .using(PlayOrderData(game, newPlayOrder, next))
+        publishEvent(CurrentPlayerChanged(game.players(next)))
+        stay using PlayOrderData(game, newPlayOrder, next)
       }
   }
 
   when(MainGame) {
     case Event(PlayerHasRolled(player, _), GameData(game, playOrder, _, currentPlayer, _))
       if playOrder(currentPlayer).player != player => // it's not this players turn
-      publishEventAndStay(WrongPlayerRolled(player))
+      publishEvent(WrongPlayerRolled(player))
+      stay
 
     case Event(PlayerHasRolled(player, rolled), data @ GameData(game, playOrder, positions, currentPlayer, _))
       if positions(player).position + rolled > game.gameDefinition.fieldCount => // not on the game board
       val next = nextPlayer(game, currentPlayer)
-      publishEventAndStay(CurrentPlayerChanged(playOrder(next).player))
-        .using(data.copy(currentPlayer = next))
+      publishEvent(CurrentPlayerChanged(playOrder(next).player))
+      stay using data.copy(currentPlayer = next)
 
     case Event(PlayerHasRolled(player, rolled), data @ GameData(game, playOrder, positions, currentPlayer, _))
       if positions(player).position + rolled == game.gameDefinition.fieldCount => // player has reached the last field
       val next = nextPlayer(game, currentPlayer)
       val finalPosition = Position(player, game.gameDefinition.fieldCount)
       publishEvent(PlayerMovedToPosition(finalPosition))
-      publishEventAndGoto(GameIsOver(player), GameOver)
+      publishEvent(GameIsOver(player))
+      goto(GameOver)
         .using(data.copy(positions = positions.updated(player, finalPosition), currentPlayer = next, winner = Some(player)))
 
     case Event(PlayerHasRolled(player, rolled), data @ GameData(game, playOrder, positions, currentPlayer, _)) =>
@@ -74,8 +78,8 @@ class GameStateMachine extends FSM[GameState.State, Data] {
         case Ladder(_, to) => publishEvent(PlayerMovedByLadder(finalPosition))
       }
 
-      publishEventAndStay(CurrentPlayerChanged(playOrder(next).player))
-        .using(data.copy(positions = positions.updated(player, finalPosition), currentPlayer = next))
+      publishEvent(CurrentPlayerChanged(playOrder(next).player))
+      stay using data.copy(positions = positions.updated(player, finalPosition), currentPlayer = next)
   }
 
   when(GameOver) {
@@ -83,16 +87,6 @@ class GameStateMachine extends FSM[GameState.State, Data] {
   }
 
   initialize()
-
-  def publishEventAndStay(event: GameEvent) = {
-    publishEvent(event)
-    stay
-  }
-
-  def publishEventAndGoto(event: GameEvent, state: GameState.State) = {
-    publishEvent(event)
-    goto(state)
-  }
 
   def publishEvent(event: GameEvent) =
     context.system.eventStream.publish(event)
