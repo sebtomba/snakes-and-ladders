@@ -19,6 +19,9 @@ class GameStateMachine extends FSM[GameState.State, Data] {
       publishEvent(CurrentPlayerChanged(game.players.head))
       stay using PlayOrderData(game)
 
+    case Event(GetCurrentPlayer, PlayOrderData(game, _, currentPlayer)) =>
+      stay replying CurrentPlayer(game.players(currentPlayer))
+
     case Event(PlayerRolled(player, _), PlayOrderData(game, _, currentPlayer))
       if game.players(currentPlayer) != player => // it's not this players turn
       publishEvent(WrongPlayerRolled(player))
@@ -45,6 +48,9 @@ class GameStateMachine extends FSM[GameState.State, Data] {
   }
 
   when(MainGame) {
+    case Event(GetCurrentPlayer, GameData(_, playOrder, _, currentPlayer, _)) =>
+      stay replying CurrentPlayer(playOrder(currentPlayer).player)
+
     case Event(PlayerRolled(player, _), GameData(game, playOrder, _, currentPlayer, _))
       if playOrder(currentPlayer).player != player => // it's not this players turn
       publishEvent(WrongPlayerRolled(player))
@@ -99,6 +105,10 @@ object GameStateMachine {
 
   case class InitializeGame(game: Game)
   case class PlayerRolled(player: Player, rolled: Int)
+  case object GetCurrentPlayer
   case object GetStats
+
+  // sends
+  case class CurrentPlayer(player: Player)
 
 }

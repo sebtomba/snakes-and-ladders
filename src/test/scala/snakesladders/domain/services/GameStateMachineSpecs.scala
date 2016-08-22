@@ -62,6 +62,21 @@ class GameStateMachineSpecs
       }
     }
 
+    "sending GetCurrentPlayer" should {
+      "reply with a CurrentPlayer and the current player" in {
+        val fsm = TestFSMRef(new GameStateMachine)
+
+        fsm ! InitializeGame(game)
+        fsm ! GetCurrentPlayer
+        fsm.stateName should equal(DeterminingPlayOrder)
+        fsm.stateData should equal(PlayOrderData(game))
+
+        expectMsg(GameStarted)
+        expectMsg(CurrentPlayerChanged(player1))
+        expectMsg(CurrentPlayer(player1))
+      }
+    }
+
     "sending PlayerHasRolled by the wrong player" should {
       "send a WrongPlayerRolled with the player to the event stream" in {
         val fsm = TestFSMRef(new GameStateMachine)
@@ -133,6 +148,21 @@ class GameStateMachineSpecs
   }
 
   "GameStateMachine in MainGame" when {
+
+    "sending GetCurrentPlayer" should {
+      "reply with a CurrentPlayer and the current player" in {
+        val fsm = TestFSMRef(new GameStateMachine)
+        val positions = game.players.map(p => p -> Position(p, 1)).toMap
+        val gameData = GameData(game, playOrder, positions)
+        fsm.setState(MainGame, gameData)
+
+        fsm ! GetCurrentPlayer
+        fsm.stateName should equal(MainGame)
+        fsm.stateData should equal(gameData)
+
+        expectMsg(CurrentPlayer(playOrder.head.player))
+      }
+    }
 
     "sending PlayerHasRolled by the wrong player" should {
       "send a WrongPlayerRolled with the player to the event stream" in {
