@@ -5,6 +5,7 @@ import snakesladders.domain.models.Players.{PlayOrder, Player, Position}
 sealed trait GameEvent
 case object GameStarted extends GameEvent
 case class CurrentPlayerChanged(player: Player) extends GameEvent
+case class PlayerRolledDice(player: Player, rolled: Int) extends GameEvent
 case class PlayerMustRollAgain(player: Player) extends GameEvent
 case class WrongPlayerRolled(player: Player) extends GameEvent
 case class PlayOrderDetermined(playOrder: Seq[PlayOrder]) extends GameEvent
